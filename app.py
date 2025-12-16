@@ -4,13 +4,15 @@ import asyncio
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import aiohttp
 from aiohttp import web
+
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 API_URL = "http://bio.thug4ff.com/update_bio"
 KEY = "great"
-PORT = int(os.getenv("PORT", 5000))  # Render fournit le port via la variable d'environnement
+PORT = int(os.getenv("PORT", 5000))
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -46,7 +48,7 @@ def format_region(code: str):
 async def on_ready():
     global session
     if session is None:
-        session = .ClientSession()
+        session = aiohttp.ClientSession()
     print(f"Logged in as {bot.user}")
 
 @bot.command(name="bio")
@@ -106,18 +108,23 @@ async def bio(ctx, access_token: str = None, *, bio: str = None):
         await ctx.send("❌ Unexpected error.", delete_after=6)
 
 async def start_web_server():
-    app = .web.Application()
+    app = web.Application()
     async def handle(request):
-        return .web.Response(text="Bot is running ✅")
+        return web.Response(text="Bot is running ✅")
     app.router.add_get("/", handle)
-    runner = .web.AppRunner(app)
+    runner = web.AppRunner(app)
     await runner.setup()
-    site = .web.TCPSite(runner, "0.0.0.0", PORT)
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
     print(f"Web server running on port {PORT}")
 
 async def main():
     await start_web_server()
-    await bot.start(TOKEN)
+    async with bot:
+        await bot.start(TOKEN)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
